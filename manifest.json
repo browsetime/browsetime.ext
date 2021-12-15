@@ -1,6 +1,6 @@
 {
     "name": "BrowseTime",
-    "description": "Track and visualise time spend on websites",
+    "description": "Track and visualise time spent on websites",
     "version": "1.0",
     "manifest_version": 3,
     "background": {

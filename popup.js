@@ -115,16 +115,22 @@ function drawUsageStatistics(sinceDate) {
         let arr = stat ? Object.entries(stat).sort((a, b) => {
             return a[1] - b[1]
         }) : [];
-        arr = arr.filter(it => it[0] !== 'inactive' && !it[0].startsWith('SERVICE >'))
 
-        let totalMillis = arr.reduce((total, item) => total + (item[0] === 'inactive' ? 0 : item[1]), 0)
+        // uncomment not to display inactive
+        // arr = arr.filter(it => it[0] !== 'inactive')
 
         if (!arr.length) return;
 
-        let maxTime = arr[arr.length - 1][1];
+        let totalMillis = arr.reduce((total, item) => total + (item[0] === 'inactive' ? 0 : item[1]), 0)
+
+        // get 1st if not inactive, else 2nd.  Reasoning:
+        // For most users inactive time will be larger than time on a particular website,
+        // so time spent on websites will be compared to inactive time.
+        // It's more interesting to compare time on different websites than website vs inactive time.
+        const shiftMaxItemPosition = arr[arr.length - 1][0] === 'inactive' && arr.length > 1
+        let maxTime = arr[arr.length - (shiftMaxItemPosition ? 2 : 1)][1]
 
         // add since row
-
         let firstDate = log && log[0] && log[0][1] && new Date(log[0][1]);
 
         let sinceTime = sinceDate && firstDate
