@@ -6,33 +6,35 @@
 </head>
 
 <body>
-    <div>
-        <h3>Thank you for using BrowseTime!</h3>
-        <h3> You are welcome to leave your feedback, request new features or report bugs
-            to <a href="mailto:browsetime.ext@google.com">browsetime.ext@google.com</a>
-        </h3>
+<div>
+    <h3>Thank you for using BrowseTime!</h3>
+    <h3>You are welcome to leave your feedback, request new features or report bugs
+        to <a href="mailto:browsetime.ext@google.com">browsetime.ext@google.com</a>
+    </h3>
+    <h3>Source code is available at <a href="https://github.com/browsetime/browsetime.ext">github.com/browsetime/browsetime.ext</a>
+    </h3>
+</div>
+<div>
+    <p>This application stores only hostnames of visited sites and never processes other parts of URLs or data on
+        web pages.</p>
+    <p>All recorded data is stored locally and never sent to remove servers.</p>
+</div>
+<br>
+<br>
+<div id='reset-area'>
+    <div id="reset-main-area">
+        <button class="red" id="reset">Clear data</button>
     </div>
-    <div>
-        <p>This application stores only hostnames of visited sites and never processes other parts of URLs or data on
-            web pages.</p>
-        <p>All recorded data is stored locally and never sent to remove servers.</p>
+    <div id="reset-confirm-area" class='hide'>
+        <p class="red">Do you really want to delete all history and statistics data?</p>
+        <p class="red">This operation could not be reverted!</p>
+        <button id="reset-cancel">Cancel</button>
+        <button id="reset-delete">Delete application data</button>
     </div>
-    <br>
-    <br>
-    <div id='reset-area'>
-        <div id="reset-main-area">
-            <button class="red" id="reset">Clear data</button>
-        </div>
-        <div id="reset-confirm-area" class='hide'>
-            <p class="red">Do you really want to delete all history and statistics data?</p>
-            <p class="red">This operation could not be reverted!</p>
-            <button id="reset-cancel">Cancel</button>
-            <button id="reset-delete">Delete application data</button>
-        </div>
-        <div id="reset-final-area" class='hide'>
-            <p>Application data was succesfully removed!</p>
-        </div>
+    <div id="reset-final-area" class='hide'>
+        <p>Application data was succesfully removed!</p>
     </div>
+</div>
 </body>
 <script src="options.js"></script>
 

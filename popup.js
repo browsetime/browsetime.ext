@@ -1,5 +1,3 @@
-let text = document.getElementById("text");
-
 let historyEl = document.getElementById("menu-history");
 let statEl = document.getElementById("menu-stat");
 
@@ -11,7 +9,7 @@ let contentEl = document.getElementById("content");
 let settingsEl = document.getElementById("settings");
 
 historyEl.addEventListener("click", async () => {
-    drawHistoryLastWeek();
+    drawHistoryLastDay();
     subMenuEl.style.display = 'none';
     activateTopMenuBtn(historyEl);
 });
@@ -43,20 +41,15 @@ allTimeEl.addEventListener("click", async () => {
 activateTopMenuBtn(statEl);
 drawUsageStatToday();
 
-function drawHistoryLastWeek() {
-    var currentDate = new Date();
-    let lastWeek = new Date(currentDate.setDate(currentDate.getDate() - 7));
+function drawHistoryLastDay() {
+    let currentDate = new Date();
+    let lastWeek = new Date(currentDate.setDate(currentDate.getDate() - 1));
     drawHistory(lastWeek);
     activateSubMenuBtn(lastWeekEl);
 }
 
-function drawHistoryToday() {
-    drawHistory(new Date().setHours(0, 0, 0, 0));
-    activateSubMenuBtn(todayEl);
-}
-
 function drawUsageStatLastWeek() {
-    var currentDate = new Date();
+    let currentDate = new Date();
     let lastWeek = new Date(currentDate.setDate(currentDate.getDate() - 7));
     drawUsageStatistics(lastWeek);
     activateSubMenuBtn(lastWeekEl);
@@ -69,11 +62,10 @@ function drawUsageStatToday() {
 
 function drawHistory(since) {
     contentEl.innerHTML = "";
-    chrome.storage.local.get(["lastOnline", "log"], ({ lastOnline, log }) => {
+    chrome.storage.local.get(["lastOnline", "log"], ({lastOnline, log}) => {
         let sinceDate = since || new Date().setHours(0, 0, 0, 0);
 
-        var table = document.createElement("table");
-        
+        let table = document.createElement("table");
         contentEl.appendChild(table);
 
         let arr = (log || []);
@@ -87,11 +79,11 @@ function drawHistory(since) {
             if (date < sinceDate) {
                 break;
             }
-            var tr = document.createElement("tr");
+            let tr = document.createElement("tr");
             tr.classList.add('row');
 
-            var td1 = document.createElement("td");
-            var td2 = document.createElement("td");
+            let td1 = document.createElement("td");
+            let td2 = document.createElement("td");
             tr.appendChild(td1)
             tr.appendChild(td2)
             table.appendChild(tr)
@@ -99,29 +91,31 @@ function drawHistory(since) {
             td1.innerText = dateToTime(date);
             td1.classList.add('text-center');
             td1.classList.add('tr-min-width');
+
             td2.innerText = host;
             td2.classList.add('text-left');
-
         }
     });
 }
 
 function drawUsageStatistics(sinceDate) {
     contentEl.innerHTML = "";
-    chrome.storage.local.get(["lastOnline", "log"], ({ lastOnline, log }) => {
+    chrome.storage.local.get(["lastOnline", "log"], ({lastOnline, log}) => {
         contentEl.innerHTML = "";
 
-        var header = document.createElement("div");
+        let header = document.createElement("div");
         contentEl.appendChild(header);
         header.classList.add('content-header');
 
-        var table = document.createElement("table");
+        let table = document.createElement("table");
         contentEl.appendChild(table);
 
         let toTime = new Date();
         let stat = getUsageStat(log, sinceDate, toTime)
-        let arr = stat ? Object.entries(stat).sort((a, b) => { return a[1] - b[1] }) : [];
-        arr =  arr.filter(it => it[0] != 'inactive' && !it[0].startsWith('SERVICE >'))
+        let arr = stat ? Object.entries(stat).sort((a, b) => {
+            return a[1] - b[1]
+        }) : [];
+        arr = arr.filter(it => it[0] !== 'inactive' && !it[0].startsWith('SERVICE >'))
 
         let totalMillis = arr.reduce((total, item) => total + (item[0] === 'inactive' ? 0 : item[1]), 0)
 
@@ -130,10 +124,14 @@ function drawUsageStatistics(sinceDate) {
         let maxTime = arr[arr.length - 1][1];
 
         // add since row
-        let sinceTime = sinceDate ? new Date(sinceDate).toLocaleString()
-            : log && log[0] && log[0][1] && new Date(log[0][1]).toLocaleString() || 'the Big Bang'
-    
-        header.innerText = 'Since: ' + sinceTime;
+
+        let firstDate = log && log[0] && log[0][1] && new Date(log[0][1]);
+
+        let sinceTime = sinceDate && firstDate
+            ? new Date(Math.max(sinceDate, firstDate))
+            : sinceDate || firstDate
+
+        header.innerText = 'Since: ' + sinceTime ? sinceTime.toLocaleString() : 'the Big Bang';
 
         for (let i = arr.length - 1; i >= 0; i--) {
 
@@ -142,11 +140,11 @@ function drawUsageStatistics(sinceDate) {
             let host = entry[0];
             let usagePercent = Math.round(time / totalMillis * 100 * 100) / 100;
 
-            var tr = document.createElement("tr");
+            let tr = document.createElement("tr");
             tr.classList.add('row');
 
-            var td1 = document.createElement("td");
-            var td2 = document.createElement("td");
+            let td1 = document.createElement("td");
+            let td2 = document.createElement("td");
             tr.appendChild(td1)
             tr.appendChild(td2)
             table.appendChild(tr)
@@ -158,7 +156,7 @@ function drawUsageStatistics(sinceDate) {
             td2.title = msToTime(time) + ' (' + usagePercent + '%)';
             td1.classList.add('text-left');
 
-            let timePercentageToMax = Math.floor((time / maxTime ) * 100);
+            let timePercentageToMax = Math.floor((time / maxTime) * 100);
 
             tr.style = `background:  linear-gradient(90deg, rgba(0,0,0,0) ${timePercentageToMax}%, white ${timePercentageToMax}%), linear-gradient(90deg, cyan, pink);`;
         }
@@ -166,18 +164,18 @@ function drawUsageStatistics(sinceDate) {
 }
 
 function msToTime(duration) {
-    var ss = Math.floor((duration / 1000) % 60),
+    let ss = Math.floor((duration / 1000) % 60),
         mm = Math.floor((duration / (1000 * 60)) % 60),
-        hh = Math.floor((duration / (1000 * 60 * 60)) % 24);
+        hh = Math.floor(duration / (1000 * 60 * 60));
 
     return (hh ? hh + 'h ' : '') + (mm ? mm + 'm ' : '') + (hh ? '' : ss + 's');
 }
 
 let dateToTime = function (timestamp) {
     let date = new Date(timestamp);
-    var hh = date.getHours();
-    var mm = date.getMinutes();
-    var ss = date.getSeconds();
+    let hh = date.getHours();
+    let mm = date.getMinutes();
+    let ss = date.getSeconds();
     return [
         (hh > 9 ? '' : '0') + hh,
         (mm > 9 ? '' : '0') + mm,
@@ -186,23 +184,21 @@ let dateToTime = function (timestamp) {
 };
 
 function activateSubMenuBtn(el) {
-    var slides = document.getElementsByClassName("menu-tab-second");
-    for (var i = 0; i < slides.length; i++) {
+    let slides = document.getElementsByClassName("menu-tab-second");
+    for (let i = 0; i < slides.length; i++) {
         slides[i].style = "";
     }
 
-    let style = "background-image: linear-gradient(to top, #ff3155, rgba(0,0,0,0) 30%);";
-    el.style = style;
+    el.style = "background-image: linear-gradient(to top, #ff3155, rgba(0,0,0,0) 30%);";
 }
 
 function activateTopMenuBtn(el) {
-    var slides = document.getElementsByClassName("menu-tab-top");
-    for (var i = 0; i < slides.length; i++) {
+    let slides = document.getElementsByClassName("menu-tab-top");
+    for (let i = 0; i < slides.length; i++) {
         slides[i].style = "";
     }
 
-    let style = "background-image: linear-gradient(to bottom, cyan, rgba(0,0,0,0) 30%);";
-    el.style = style;
+    el.style = "background-image: linear-gradient(to bottom, cyan, rgba(0,0,0,0) 30%);";
 }
 
 function getUsageStat(data, since, to) {
@@ -214,6 +210,8 @@ function getUsageStat(data, since, to) {
         let name = item[0];
         let itemTime = item[1];
         if (since && itemTime < since) {
+            // append time for action that started before Since and finished after Since
+            // in that case count only part that continued after Since timestamp
             stat[name] = (stat[name] || 0) + (prevTime - since)
             break;
         }
@@ -223,6 +221,6 @@ function getUsageStat(data, since, to) {
     return stat;
 }
 
-function openSettingsPage(){
-    chrome.tabs.create({ 'url': 'chrome://extensions/?options=' + chrome.runtime.id });
+function openSettingsPage() {
+    chrome.tabs.create({'url': 'chrome://extensions/?options=' + chrome.runtime.id});
 }

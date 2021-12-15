@@ -1,34 +1,32 @@
 const INACTIVE = "inactive";
 const STARTUP = "startup";
 
-const LOCAL_STORAGE_QUOTA_BYTES = 5242880;
+// const LOCAL_STORAGE_QUOTA_BYTES = 5242880;
 const LOCAL_STORAGE_QUOTA_CLEANUP = 4718592; // 90%
 
 const LOG_STORAGE_KEY = 'log'
-let logService = initAsyncStorage('log');
-const debug = false;
+let logService = initAsyncStorage(LOG_STORAGE_KEY);
 
 // ON WINDOW FOCUS CHANGED
 chrome.windows.onFocusChanged.addListener((windowId) => {
-    if (chrome.windows.WINDOW_ID_NONE == windowId) {
-        log('focus out')
+    if (chrome.windows.WINDOW_ID_NONE === windowId) {
         registerHost(INACTIVE)
     } else {
-        log('focus in')
-        registerActiveTab();
+        registerHost(STARTUP)
+        getActiveTab()
+            .then(tab => registerHost(getTabHostname(tab)))
+            .catch(er => registerHost('Unable to get tab'))
     }
 })
 
 // ON TAB ACTIVATED
 chrome.tabs.onActivated.addListener(function (activeInfo) {
     chrome.tabs.get(activeInfo.tabId, async (tab) => {
-        if (chrome.runtime.lastError && chrome.runtime.lastError.message === 'No tab with id: ' + activeInfo.tabId + '.' || !tab) {
-            // probably tab was immedeately closed
+        if (chrome.runtime.lastError && chrome.runtime.lastError.message || !tab) {
+            // probably tab was immediately closed
         } else {
-            log('tab activated', getTabHostname(tab))
             registerHost(getTabHostname(tab))
         }
-
     });
 });
 
@@ -39,14 +37,12 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     let active = tab.active;
 
     if (active && urlChanged) {
-        log('tab url updated', getUrlHostname(url))
         registerHost(getUrlHostname(url))
     }
 })
 
 // ON WINDOW CLOSED
 chrome.windows.onRemoved.addListener((id) => {
-    log('window closed', getTabHostname(tab))
     registerHost(INACTIVE)
 });
 
@@ -54,18 +50,14 @@ chrome.windows.onRemoved.addListener((id) => {
 const ALARM_NAME = "HANDLE BROWSER CLOSE";
 chrome.alarms.create(ALARM_NAME, {
     periodInMinutes: 1,
-    when: Date.now() + 100
-
+    when: Date.now() + 1000
 })
+
 chrome.alarms.onAlarm.addListener((alarm) => {
-    if (alarm.name == ALARM_NAME) {
+    if (alarm.name === ALARM_NAME) {
         registerOnline();
     }
 })
-
-// chrome.runtime.onStartup.addListener(() => {
-//     registerService(STARTUP)  // <<<<<<<<<<<<<<<<<<<<<< TODO on start set proper time based p? 
-// })
 
 // manage storage space left by deleting old records
 function cleanupOldData() {
@@ -78,24 +70,23 @@ function cleanupOldData() {
             });
         }
     })
-
 }
 
-function initAsyncStorage (storageKey) {
-    var items = [];
+function initAsyncStorage(storageKey) {
+    let items = [];
 
-    var publishItems = function (storageData) {
-        var tasks = storageData[LOG_STORAGE_KEY] || [];
+    let publishItems = function (storageData) {
+        let tasks = storageData[LOG_STORAGE_KEY] || [];
         let lastOnline = storageData['lastOnline'];
 
         pushItemsToTheList(tasks, items, lastOnline);
 
-        chrome.storage.local.set({ [`${storageKey}`]: tasks, 'lastOnline': Date.now() }, function () {
+        chrome.storage.local.set({[`${storageKey}`]: tasks, 'lastOnline': Date.now()}, function () {
             itemsWritten(items.length);
         });
     };
 
-    var itemsWritten = function (nComplete) {
+    let itemsWritten = function (nComplete) {
         items = items.slice(nComplete);
         if (items.length) {
             chrome.storage.local.get(storageKey, publishItems);
@@ -103,9 +94,9 @@ function initAsyncStorage (storageKey) {
     };
 
     return function (item) {
-        cleanupOldData()
         if (items.push(item) === 1) {
             chrome.storage.local.get([storageKey, 'lastOnline'], publishItems);
+            cleanupOldData()
         }
     };
 }
@@ -115,18 +106,19 @@ function pushItemsToTheList(list, newItems, lastOnline) {
     let prev = list.length ? list[list.length - 1] : undefined;
     for (let i = 0; i < newItems.length; i++) {
         let newItem = newItems[i];
+        if (!newItem) continue;
 
-        if (newItem && newItem instanceof Function) {
+        if (newItem instanceof Function) {
             newItem(list, lastOnline)
-        } else if (newItem && (!prev || newItem[0] != prev[0])) {
-            let isStartup = newItem[0] === STARTUP;
-            if (isStartup && prev && lastOnline) {
-                list.push([INACTIVE, lastOnline]);
+        } else if (!prev || (newItem[0] !== prev[0])) {
+            if (newItem[0] === STARTUP) {
+                if (prev && lastOnline && prev instanceof Array && prev[0] !== INACTIVE) {
+                    list.push([INACTIVE, lastOnline]);
+                }
             } else {
                 list.push(newItem)
                 prev = newItem
             }
-
         }
     }
 }
@@ -138,19 +130,8 @@ function registerHost(host) {
 
 }
 
-function registerService(service) {
-    let time = Date.now();
-    logService([service, time]);
-}
-
 function registerOnline() {
     logService(undefined);
-}
-
-function registerActiveTab() {
-    getActiveTab()
-        .then(tab => registerHost(getTabHostname(tab)))
-        .catch(er => registerHost('Unable to get tab'))
 }
 
 // utils
@@ -166,13 +147,7 @@ const getUrlHostname = (url) => {
 }
 
 async function getActiveTab() {
-    let queryOptions = { active: true, currentWindow: true };
+    let queryOptions = {active: true, currentWindow: true};
     let [tab] = await chrome.tabs.query(queryOptions);
     return tab;
-}
-
-function log(...args){
-    if (debug){
-        console.log(arguments);
-    }
 }
